@@ -1,0 +1,14 @@
+build/
+models/
+data/
+cities/
+output/
+
+src/initial_roads.png
+src/outputobb.png
+src/temple.png
+src/tensor.png
+src/tensor_elevation.png
+src/test.xlsx
+
+dsc
