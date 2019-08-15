@@ -26,6 +26,13 @@ public:
 
 	static float minBuildingError;
 	static ShapefileStats truthStats;
+	
+	//Liu added on 2019/07/07
+	static float minParcelError;
+	static float optimalParcelBoundaryMidLarge;
+	static float optimalParcelBoundarySmallMid;
+	static float optimalCorrectionFactor;
+
 
 public:
 	UrbanGeometry(MainWindow* mainWin);
@@ -69,4 +76,11 @@ public:
 	// SVF computation
 	void getCoordsForSvf(std::vector<std::vector<glm::vec3>>& points_set);
 	void getCoordsForHeight(std::vector<float>& blds_height, std::vector<std::vector<glm::vec3>>& blds_contour);
+
+	//Liu added on 2019/07/07
+	static float buildingErrorFunc(float* params);
+	float computeOptimalBuildingParams();
+
+	static float parcelErrorFunc(float* params);
+	float computeOptimalParcelParams(std::string truthShapefilePath);
 };

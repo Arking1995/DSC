@@ -5,6 +5,8 @@
 #include <QGenericMatrix>
 #include "common.h"
 #include "Polyline2D.h"
+#include "ogrsf_frmts.h"
+
 struct ShapefileStats{
 	float avgArea;
 	float numBuildings;
@@ -63,4 +65,7 @@ public:
 
 	static bool getIrregularBisector(const QVector3D& p0, const QVector3D& p1, const QVector3D& p2, float d01, float d12, QVector3D& intPt);
 	static bool getIrregularBisector(const QVector2D& p0, const QVector2D& p1, const QVector2D& p2, float d01, float d12, QVector2D& intPt);
+	//Liu added on 2019/07/08
+	static ShapefileStats readShapeFile(std::string filepath);
+	static std::vector<double> getTerrainpara(std::vector<double> paras);
 };

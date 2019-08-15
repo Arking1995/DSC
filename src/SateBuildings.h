@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Block.h"
+#include "./optimizer/nrutil.h"
+#include "./optimizer/powell.h"
 
 class SateBuildings {
 public:

@@ -116,31 +116,38 @@ std::vector<double> Util::getGeoInfo(char * filename){
 	poDataset = (GDALDataset *)GDALOpen(filename, GA_ReadOnly);
 	if (poDataset == NULL)
 	{
-		std::cout << " Null data" << std::endl;
+		std::cout << " Null data (util::getGeoInfo)" << std::endl;
 	}
 	else{
 		// Getting Dataset Information
 		double adfGeoTransform[6];
-		printf("Driver: %s/%s\n",
-			poDataset->GetDriver()->GetDescription(),
-			poDataset->GetDriver()->GetMetadataItem(GDAL_DMD_LONGNAME));
-		printf("Size is %dx%dx%d\n",
-			poDataset->GetRasterXSize(), poDataset->GetRasterYSize(),
-			poDataset->GetRasterCount());
+		//printf("Driver: %s/%s\n",
+		//	poDataset->GetDriver()->GetDescription(),
+		//	poDataset->GetDriver()->GetMetadataItem(GDAL_DMD_LONGNAME));
+		//printf("Size is %dx%dx%d\n",
+		//	poDataset->GetRasterXSize(), poDataset->GetRasterYSize(),
+		//	poDataset->GetRasterCount());
 		if (poDataset->GetProjectionRef() != NULL)
-			printf("Projection is `%s'\n", poDataset->GetProjectionRef());
+		//	printf("Projection is `%s'\n", poDataset->GetProjectionRef());
 		if (poDataset->GetGeoTransform(adfGeoTransform) == CE_None)
 		{
-			printf("Origin = (%.6f,%.6f)\n",
-				adfGeoTransform[0], adfGeoTransform[3]);
-			printf("Pixel Size = (%.6f,%.6f)\n",
-				adfGeoTransform[1], adfGeoTransform[5]);
+		//	printf("Origin = (%.6f,%.6f)\n",
+		//		adfGeoTransform[0], adfGeoTransform[3]);
+		//	printf("Pixel Size = (%.6f,%.6f)\n",
+		//		adfGeoTransform[1], adfGeoTransform[5]);
 		}
 		result.push_back(adfGeoTransform[0]);
 		result.push_back(adfGeoTransform[3]);
 		result.push_back(adfGeoTransform[1]);
 		result.push_back(adfGeoTransform[5]);
+		result.push_back(poDataset->GetRasterXSize());
+		result.push_back(poDataset->GetRasterYSize());
+		//std::cout << " util::getGeoInfo added" << std::endl;
 	}
+
+	if(poDataset!=NULL){
+		GDALClose( (GDALDatasetH) poDataset);}
+
 	return result;
 }
 
@@ -610,3 +617,73 @@ bool Util::getIrregularBisector(const QVector2D& p0, const QVector2D& p1, const 
 	}
 	return true;
 }
+
+
+//Liu added on 2019/07/08
+ShapefileStats Util::readShapeFile(std::string filepath){
+	GDALAllRegister();
+	GDALDataset       *poDS;
+	poDS = (GDALDataset*)GDALOpenEx(filepath.c_str(), GDAL_OF_VECTOR, NULL, NULL, NULL);
+	if (poDS == NULL)
+	{
+		printf("Open failed.\n");
+		exit(1);
+	}
+	OGRLayer  *poLayer;
+	//poLayer = poDS->GetLayerByName("building");
+	poLayer = poDS->GetLayer(0);
+	OGRFeature *poFeature;
+	poLayer->ResetReading();
+	OGREnvelope env;
+	poLayer->GetExtent(&env);
+	double minX = env.MinX;
+	double minY = env.MinY;
+	double maxX = env.MaxX;
+	double maxY = env.MaxY;
+
+	int count = 0;
+	int total_count = 0;
+	double total_area = 0;
+	while ((poFeature = poLayer->GetNextFeature()) != NULL)
+	{
+		OGRGeometry *geom = poFeature->GetGeometryRef();
+		OGRPoint centroid;
+		geom->Centroid(&centroid);
+		double x = centroid.getX();
+		double y = centroid.getY();
+		if (x < minX || x > maxX || y < minY || y > maxY)
+			continue;
+		total_count++;
+		if (geom != NULL
+			&& wkbFlatten(geom->getGeometryType()) == wkbPoint)
+		{
+			printf("point geometry\n");
+		}
+		else if (geom != NULL
+			&& wkbFlatten(geom->getGeometryType()) == wkbPolygon)
+		{
+			OGRPolygon *poPolygon = (OGRPolygon *)geom;
+			double area_tmp = poPolygon->get_Area();
+			total_area += area_tmp;
+			//printf("polygon geometry\n");
+			count++;
+		}
+		OGRFeature::DestroyFeature(poFeature);
+	}
+	GDALClose(poDS);
+	ShapefileStats stats;
+	stats.numBuildings = count;
+	stats.avgArea = total_area / (float)count;
+	return stats;
+}
+
+
+
+std::vector<double> Util::getTerrainpara(std::vector<double> paras){
+	double lg2mt = 360/( 2 * 6378137.0 * M_PI * cos( fabs(paras.at(1))*M_PI/180.0 ) );
+	double la2mt = 360/( 2 * 6378137.0 * M_PI );
+	std::vector<double> result; 
+	result.push_back( fabs(paras.at(2)) * paras.at(4) * lg2mt );
+	result.push_back( fabs(paras.at(3)) * paras.at(5) * la2mt );
+	return result;
+}	

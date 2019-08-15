@@ -3,6 +3,10 @@ set(CMAKE_CXX_STANDARD 17)
 
 project(dsc)
 
+set(CMAKE_INSTALL_PREFIX ${PROJECT_SOURCE_DIR})
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 # Auto-run MOC and UIC when needed
@@ -56,6 +60,7 @@ add_definitions(-DGLM_FORCE_CTOR_INIT)
 # Get sources
 file(GLOB SOURCES CONFIGURE_DEPENDS src/*.cpp)
 file(GLOB NVSOURCES CONFIGURE_DEPENDS src/nvModel/*.cpp)
+file(GLOB OPTSOURCES CONFIGURE_DEPENDS src/optimizer/*.cpp)
 file(GLOB QRC CONFIGURE_DEPENDS src/*.qrc)
 file(GLOB UIS src/*.ui)
 file(GLOB HEADER src/*.h)
@@ -64,7 +69,7 @@ QT5_ADD_RESOURCES(QRC_RESOURCES ${QRC})
 QT5_WRAP_UI(UI_RS ${UIS})
 QT5_WRAP_CPP(QHEADER ${HEADER})
 
-SET(DSC_SRCS ${SOURCES} ${NVSOURCES} ${QHEADER} ${QRC_RESOURCES} ${UI_RS})
+SET(DSC_SRCS ${SOURCES} ${NVSOURCES} ${OPTSOURCES} ${QHEADER} ${QRC_RESOURCES} ${UI_RS})
 
 #Liu last modified on 2019/06/27
 add_executable(${PROJECT_NAME} ${DSC_SRCS})
@@ -88,4 +93,7 @@ target_link_libraries(${PROJECT_NAME} ${GLEW_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} ${QT_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} ${PYTHON_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} Qt5::Test)
+
+install(TARGETS ${PROJECT_NAME} DESTINATION .)
+
 

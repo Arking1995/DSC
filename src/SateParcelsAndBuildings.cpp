@@ -323,20 +323,20 @@ std::vector<std::vector<int>> SateParcelsAndBuildings::get_height_info(QString h
 	else{
 		// Getting Dataset Information
 		double        adfGeoTransform[6];
-		printf("Driver: %s/%s\n",
-			poDataset_height->GetDriver()->GetDescription(),
-			poDataset_height->GetDriver()->GetMetadataItem(GDAL_DMD_LONGNAME));
-		printf("Size is %dx%dx%d\n",
-			poDataset_height->GetRasterXSize(), poDataset_height->GetRasterYSize(),
-			poDataset_height->GetRasterCount());
+		//printf("Driver: %s/%s\n",
+		//	poDataset_height->GetDriver()->GetDescription(),
+		//	poDataset_height->GetDriver()->GetMetadataItem(GDAL_DMD_LONGNAME));
+		//printf("Size is %dx%dx%d\n",
+		//	poDataset_height->GetRasterXSize(), poDataset_height->GetRasterYSize(),
+		//	poDataset_height->GetRasterCount());
 		if (poDataset_height->GetProjectionRef() != NULL)
-			printf("Projection is `%s'\n", poDataset_height->GetProjectionRef());
+		//	printf("Projection is `%s'\n", poDataset_height->GetProjectionRef());
 		if (poDataset_height->GetGeoTransform(adfGeoTransform) == CE_None)
 		{
-			printf("Origin = (%.6f,%.6f)\n",
-				adfGeoTransform[0], adfGeoTransform[3]);
-			printf("Pixel Size = (%.6f,%.6f)\n",
-				adfGeoTransform[1], adfGeoTransform[5]);
+		//	printf("Origin = (%.6f,%.6f)\n",
+		//		adfGeoTransform[0], adfGeoTransform[3]);
+		//	printf("Pixel Size = (%.6f,%.6f)\n",
+		//		adfGeoTransform[1], adfGeoTransform[5]);
 		}
 
 		//Fetching a Raster Band
@@ -350,18 +350,18 @@ std::vector<std::vector<int>> SateParcelsAndBuildings::get_height_info(QString h
 		adfMinMax[1] = poBand->GetMaximum(&bGotMax);
 		if (!(bGotMin && bGotMax))
 			GDALComputeRasterMinMax((GDALRasterBandH)poBand, TRUE, adfMinMax);
-		printf("Min=%.3fd, Max=%.3f\n", adfMinMax[0], adfMinMax[1]);
-		if (poBand->GetOverviewCount() > 0)
-			printf("Band has %d overviews.\n", poBand->GetOverviewCount());
-		if (poBand->GetColorTable() != NULL)
-			printf("Band has a color table with %d entries.\n",
-			poBand->GetColorTable()->GetColorEntryCount());
+		//printf("Min=%.3fd, Max=%.3f\n", adfMinMax[0], adfMinMax[1]);
+		if (poBand->GetOverviewCount() > 0){}
+		//	printf("Band has %d overviews.\n", poBand->GetOverviewCount());
+		if (poBand->GetColorTable() != NULL){}
+		//	printf("Band has a color table with %d entries.\n",
+		//	poBand->GetColorTable()->GetColorEntryCount());
 		//Reading Raster Data
 		int nXSize = poBand->GetXSize();
 		int nYSize = poBand->GetYSize();
 		int *pafScanline = new int[nXSize*nYSize];
-		printf("Band nXSize is %d.\n", nXSize);
-		printf("Band nYSize is %d.\n", nYSize);
+		//printf("Band nXSize is %d.\n", nXSize);
+		//printf("Band nYSize is %d.\n", nYSize);
 		pafScanline = (int *)CPLMalloc(sizeof(int)*nXSize*nYSize);
 		poBand->RasterIO(GF_Read, 0, 0, nXSize, nYSize,
 			pafScanline, nXSize, nYSize, GDT_Int32,

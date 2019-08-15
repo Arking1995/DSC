@@ -17,6 +17,16 @@
 #include "caffe_wrapper.h"
 #include "Regression.h"
 
+#include <QInputDialog>
+#include <Python.h>
+#include <fstream>
+#include <string>
+
+#include "OSMRoadsParser.h"
+#include "ogrsf_frmts.h"
+#include "../src/optimizer/nrutil.h"
+#include <QTime>
+
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 	std::cout << "Going to MainWindow" << std::endl;
@@ -94,7 +104,13 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 	connect(ui.actionSateLayout, SIGNAL(triggered()), this, SLOT(onSateLayout()));
 
 	connect(ui.actionLoadROI, SIGNAL(triggered()), this, SLOT(onDemoLoadROI()));
-	connect(ui.actionGenerate_ROI_Layout, SIGNAL(triggered()), this, SLOT(onDemoLayout()));
+	connect(ui.actionGenerate_ROI_Layout,SIGNAL(triggered()), this, SLOT(onDemoLayout()));
+	
+
+	//connect(ui.actionOptimize_Parcel_Parameters, SIGNAL(triggered()), this, SLOT(onOptimizeParcelParameters()));
+	connect(ui.actionOptimize_Building_Parameters, SIGNAL(triggered()), this, SLOT(onOptimizeBuildingParameters()));
+	connect(ui.actionin, SIGNAL(triggered()), this, SLOT(in()));
+
 
 	// setup the GL widget
 	glWidget = new GLWidget3D(this);
@@ -202,13 +218,15 @@ void MainWindow::onSateLoadOSMRoads(){
 	glWidget->updateGL();
 }
 
+
+//////////////////////////////////////
 void MainWindow::onDemoLoadROI(){
 	// For Toulouse
 	//int terrainSize_x = 2100;
 	//int terrainSize_y = 1200;
 	// for chicago
-	//int terrainSize_x = 2500;
-	//int terrainSize_y = 2500;
+	int terrainSize_x = 2500;
+	int terrainSize_y = 2500;
 	// for new orleans
 	//int terrainSize_x = 2500;
 	//int terrainSize_y = 2500;
@@ -222,9 +240,11 @@ void MainWindow::onDemoLoadROI(){
 	//int terrainSize_x = 1000;
 	//int terrainSize_y = 1000;
 	// small chicago
-	int terrainSize_x = 500;
-	int terrainSize_y = 500;
-	int resize_factor = 4;
+	//int terrainSize_x = 500;
+	//int terrainSize_y = 500;
+
+
+	int resize_factor = 1;
 	// Load the directory for ROI
 	QString dir = QFileDialog::getExistingDirectory(this, tr("Open Directory"), "", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 	if (dir.isEmpty()) return;
@@ -246,8 +266,8 @@ std::cout << "OSM 3!!" << std::endl;
 	std::cout << "Finish loading OSM road!!" << std::endl;
 
 	// Load autoLabeled image
-	QString filename_tif = dir + "/Truth.tif";
-	//QString filename_tif = dir + "/labeled.tif";
+	//QString filename_tif = dir + "/Truth.tif";
+	QString filename_tif = dir + "/labeled.tif";
 	if (!QFile(filename_tif).exists()) {
 		return;
 	}
@@ -259,8 +279,8 @@ std::cout << "OSM 3!!" << std::endl;
 	std::cout << "Finish loading Geo Info for the segmented image!!" << std::endl;
 
 	// load the labeled image
-	QString filename_labeled = dir + "/Truth.png";
-	//QString filename_labeled = dir + "/labeled.png";
+	//QString filename_labeled = dir + "/Truth.png";
+	QString filename_labeled = dir + "/labeled.png";
 	if (!QFile(filename_labeled).exists())  return;
 	G::global()["segmented_image"] = filename_labeled;
 	std::cout << "Finish loading labeled image!!" << std::endl;
@@ -291,6 +311,12 @@ std::cout << "OSM 3!!" << std::endl;
 		std::cout << "Terrian up_right is (" << up_right.x() << ", " << up_right.y() << ")" << std::endl;
 	}
 }
+
+
+
+////////////////////////////////////////////////
+
+
 
 void MainWindow::onSaveRoads() {
 	QString filename = QFileDialog::getSaveFileName(this, tr("Save roads..."), "", tr("Shapefiles Files (*.shp)"));
@@ -485,7 +511,6 @@ void MainWindow::onDemoLayout(){
 	urbanGeometry->sateGetBlocks();
 	glWidget->shadow.makeShadowMap(glWidget);
 	glWidget->updateGL();
-
 	// extrude buildings testing
 	/*{
 		urbanGeometry->sateGetParcelsAndBuildings();
@@ -511,6 +536,7 @@ void MainWindow::onDemoLayout(){
 	//urbanGeometry->sateGetParcels(427.728, 589.543, -1, false);
 	// HK
 	//urbanGeometry->sateGetParcels(223.697, 502.541, -1, false);
+
 	glWidget->shadow.makeShadowMap(glWidget);
 	glWidget->updateGL();
 
@@ -518,7 +544,7 @@ void MainWindow::onDemoLayout(){
 	// small chicago
 	//urbanGeometry->sateGetBuildings(1.0f);
 	//chicago
-	urbanGeometry->sateGetBuildings(0.784858f);
+	urbanGeometry->sateGetBuildings(0.784858f);//
 	//chicago comparison
 	//urbanGeometry->sateGetBuildings(1.36151f);
 	//urbanGeometry->sateGetBuildings(1.2f);
@@ -534,8 +560,10 @@ void MainWindow::onDemoLayout(){
 	//urbanGeometry->sateGetBuildings(0.506804);
 	// HK
 	//urbanGeometry->sateGetBuildings(1.02586);
+
 	glWidget->shadow.makeShadowMap(glWidget);
 	glWidget->updateGL();
+
 	/*
 	// buildings
 	int height = -50;
@@ -2364,4 +2392,167 @@ std::vector<std::string> MainWindow::get_all_files_names_within_folder(std::stri
 //		::FindClose(hFind);
 //	}
 //	return names;
+}
+
+
+void MainWindow::loadFiles(std::string path){
+	/*LOAD ROI*/
+	//QDir dirROI = QFileDialog::getExistingDirectory(this, tr("Open Directory"), "", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+	QDir dirROI = QDir(QString::fromStdString(path));
+	QString dir = dirROI.absolutePath();
+	// Load OSM road
+	
+	int terrainSize_x =2500;
+	int terrainSize_y =2500;
+	int resize_factor = 4;
+
+	glWidget->vboRenderManager.changeTerrainDimensions(glm::vec2(terrainSize_x, terrainSize_y));
+	//QString filename = dir + "/Streets.osm";
+	QString filename = dir + "/Truth/Streets.osm";
+	if (!QFile(filename).exists()) {
+		return;
+	}
+	urbanGeometry->clear();
+	urbanGeometry->loadOSMRoads(filename.toUtf8().constData());
+	std::cout << "Finish loading OSM road!!" << std::endl;
+
+	// Load autoLabeled image
+	QString filename_tif = dir + "/Truth/Truth.tif";
+	if (!QFile(filename_tif).exists()) {
+		return;
+	}
+	std::vector<double> result = Util::getGeoInfo(filename_tif.toUtf8().data());
+	G::global()["origin_long"] = result.at(0);
+	G::global()["origin_lat"] = result.at(1);
+	G::global()["pixel_size_long"] = result.at(2);
+	G::global()["pixel_size_lat"] = result.at(3);
+	G::global()["pixel_width"] = result.at(4);
+	G::global()["pixel_height"] = result.at(5);
+	std::cout << "Finish loading Geo Info for the segmented image!!" << std::endl;
+
+	// load the labeled image
+	QString filename_labeled = dir + "/Truth/Truth.png";
+	if (!QFile(filename_labeled).exists())  return;
+	G::global()["segmented_image"] = filename_labeled;
+	std::cout << "Finish loading labeled image!!" << std::endl;
+	// load the height tif
+	QString filename_height = dir + "/Truth/building_heights.tiff";
+	if (QFile(filename_height).exists()){
+		G::global()["height_tif"] = filename_height;
+		std::cout << "Finish loading height image!!" << std::endl;
+	}
+	// load the building type tif
+	QString filename_building_type = dir + "/Truth/building_types.tiff";
+	if (QFile(filename_building_type).exists()){
+		G::global()["building_type_tif"] = filename_building_type;
+		std::cout << "Finish loading building type image!!" << std::endl;
+	}
+	
+	// get long/lat coordinate for terrian corners
+	//QVector2D bot_left = Util::getLongLatCoord(-resize_factor * terrainSize_x / 2.0f, -resize_factor * terrainSize_y / 2.0f);
+	//QVector2D bot_right = Util::getLongLatCoord(resize_factor * terrainSize_x / 2.0f, -resize_factor * terrainSize_y / 2.0f);
+	//QVector2D up_left = Util::getLongLatCoord(-resize_factor * terrainSize_x / 2.0f, resize_factor * terrainSize_y / 2.0f);
+	//QVector2D up_right = Util::getLongLatCoord(resize_factor * terrainSize_x / 2.0f, resize_factor * terrainSize_y / 2.0f);
+	//{
+	//	std::cout << "Terrian bot_left is (" << bot_left.x() << ", " << bot_left.y() << ")" << std::endl;
+	//	std::cout << "Terrian bot_right is (" << bot_right.x() << ", " << bot_right.y() << ")" << std::endl;
+	//	std::cout << "Terrian up_left is (" << up_left.x() << ", " << up_left.y() << ")" << std::endl;
+	//	std::cout << "Terrian up_right is (" << up_right.x() << ", " << up_right.y() << ")" << std::endl;
+	//}
+
+}
+
+
+//void MainWindow::onOptimizeParcelParameters(){
+//}
+
+void MainWindow::onOptimizeBuildingParameters(){
+	QTime curTime3 = QTime::currentTime();
+	//std::string mainPath = "./cities/Chicago_whole/";
+	//for(int i=0; i<16; i++)
+	//{
+
+		QTime curTime1 = QTime::currentTime();
+		//std::cout << "Optimizing Area: "<<i<<std::endl;
+		//std::string path = mainPath + std::to_string(i) +"/";
+		std::string path = "./cities/Chicago_whole/";	
+		std::cout << path<< std::endl;
+		
+		//load osm, segmented images, height, types in /Truth folder	
+		loadFiles(path);
+		//////////////////////////
+		setBlocksParameters();
+
+		std::cout << "Optimizing 2 "<< std::endl;
+		/*Blocks*/		
+	
+		urbanGeometry->sateGetBlocks();
+		//glWidget->shadow.makeShadowMap(glWidget);
+		//glWidget->updateGL();
+
+		std::cout << "Optimizing Parcel Parameters" << std::endl;
+		/*Parcels*/
+
+		//urbanGeometry->computeOptimalParcelParams(path + "/Truth/Buildings.shp");
+		//std::cout << "Optimal Parcel: " << UrbanGeometry::optimalParcelBoundarySmallMid << ", " << UrbanGeometry::optimalParcelBoundaryMidLarge << " - Optimal Building: " << UrbanGeometry::optimalCorrectionFactor << std::endl<<UrbanGeometry::minParcelError<<std::endl;		
+
+		std::cout << "Optimizing 3" << std::endl;
+		//urbanGeometry->sateGetParcels(UrbanGeometry::optimalParcelBoundarySmallMid, UrbanGeometry::optimalParcelBoundaryMidLarge, -1, false);
+		urbanGeometry->sateGetParcels(353.562, 472.419,-1,false);
+		
+		std::cout << "Optimizing 4" << std::endl;		
+		//urbanGeometry->sateGetBuildings(UrbanGeometry::optimalCorrectionFactor);
+		urbanGeometry->sateGetBuildings(0.781218f);
+		std::cout << "Optimizing 5" << std::endl;
+
+		glWidget->shadow.makeShadowMap(glWidget);
+		glWidget->updateGL();
+		
+		urbanGeometry->saveBuildings(path + "/Generated.shp");
+		
+		std::ofstream parameterFile;
+		parameterFile.open(path + "parameters.txt");
+		parameterFile << UrbanGeometry::optimalParcelBoundarySmallMid << ", " << UrbanGeometry::optimalParcelBoundaryMidLarge << "," << UrbanGeometry::optimalCorrectionFactor << std::endl << UrbanGeometry::minParcelError;
+		parameterFile.close();
+		
+		ShapefileStats generatedStats;		
+		generatedStats = Util::readShapeFile(path + "/Generated.shp");
+		std::cout << "Generated Building number "<<generatedStats.numBuildings<<std::endl;
+		std::cout << "Generated avg area: "<<generatedStats.avgArea<<std::endl;
+
+		ShapefileStats truthStats;		
+		truthStats = Util::readShapeFile(path + "/Truth/Buildings.shp");
+		std::cout << "Truth Building number "<<truthStats.numBuildings<<std::endl;
+		std::cout << "Truth avg area: "<<truthStats.avgArea<<std::endl;
+
+		float areaError = fabs((generatedStats.avgArea - truthStats.avgArea) / (float)truthStats.avgArea);
+		float numError = fabs((generatedStats.numBuildings - truthStats.numBuildings) / (float)truthStats.numBuildings);
+
+		float avgError = (areaError + numError) / 2.0;
+
+		std::cout << "num error: "<<numError<<std::endl;
+		std::cout << "area error: "<<areaError<<std::endl;
+		std::cout << "Avg error: "<<avgError<<std::endl;
+
+
+
+		UrbanGeometry::minParcelError = 100;
+		UrbanGeometry::truthStats.numBuildings = 0;
+
+		QTime curTime2 = QTime::currentTime();
+		float secondcost = ((float)curTime2.second()) - ((float)curTime1.second());
+		float minutecost = ((float)curTime2.minute()) - ((float)curTime1.minute());
+		float hourcost = ((float)curTime2.hour()) - ((float)curTime1.hour());
+		//std::cout <<"The "<<i<< "th time cost is: "<< hourcost <<" hours, "<<minutecost<<" minutes,"<<secondcost<<" second."<< std::endl;
+	//}
+
+	QTime curTime4 = QTime::currentTime();
+	float secondcost1 = ((float)curTime4.second()) - ((float)curTime3.second());
+	float minutecost1 = ((float)curTime4.minute()) - ((float)curTime3.minute());
+	float hourcost1 = ((float)curTime4.hour()) - ((float)curTime3.hour());
+	std::cout <<"The whole time cost is: "<< hourcost1 <<" hours, "<<minutecost1<<" minutes,"<<secondcost1<<" second."<< std::endl;
+}
+
+void MainWindow::in(){
+std::cout<<"111"<<std::endl;
 }

@@ -4,6 +4,11 @@
 #include "Util.h"
 #include <QFileDialog>
 
+CaffeWrapper* SateParcels::caffe_parcel_type;
+Regression* SateParcels::parcel_small;
+Regression* SateParcels::parcel_median;
+Regression* SateParcels::parcel_big;
+
 bool SateParcels::generateParcels(VBORenderManager& rendManager, std::vector<Block>& blocks, float boundary_v1, float boundary_v2, int testbN, bool bTest) {
 	if (QDir("output").exists()) {
 		//std::cout << "Removing existing files in the output directory...";
@@ -13,11 +18,16 @@ bool SateParcels::generateParcels(VBORenderManager& rendManager, std::vector<Blo
 	if (!QDir("output").exists()){
 		QDir().mkpath("output");
 	}
-	CaffeWrapper *caffe_parcel_type = new CaffeWrapper("models/parcel_type/deploy.prototxt", "models/parcel_type/parcel_type.caffemodel",
+	
+	if(!caffe_parcel_type){
+		caffe_parcel_type = new CaffeWrapper("models/parcel_type/deploy.prototxt", "models/parcel_type/parcel_type.caffemodel",
 		"models/parcel_type/mean.binaryproto");
-	Regression * parcel_small = new Regression("models/parcel_small/deploy.prototxt", "models/parcel_small/parcel.caffemodel");
-	Regression * parcel_median = new Regression("models/parcel_median/deploy.prototxt", "models/parcel_median/parcel.caffemodel");
-	Regression * parcel_big = new Regression("models/parcel_big/deploy.prototxt", "models/parcel_big/parcel.caffemodel");
+		parcel_small = new Regression("models/parcel_small/deploy.prototxt", "models/parcel_small/parcel.caffemodel");
+		parcel_median = new Regression("models/parcel_median/deploy.prototxt", "models/parcel_median/parcel.caffemodel");
+		parcel_big = new Regression("models/parcel_big/deploy.prototxt", "models/parcel_big/parcel.caffemodel");
+	}
+
+
 	cv::Mat src = cv::imread(G::getString("segmented_image").toUtf8().data(), CV_LOAD_IMAGE_COLOR);
 	cv::Mat parcel_src, gt_src, gt_whole_src;
 	if (bTest){
@@ -32,11 +42,11 @@ bool SateParcels::generateParcels(VBORenderManager& rendManager, std::vector<Blo
 	int max_thresh = 255;
 	cv::RNG rng(12345);
 	std::cout << "Block size is " << blocks.size() << std::endl;
-	for (int bN = 0; bN < 200/*blocks.size()*/; ++bN) {
+	for (int bN = 0; bN < blocks.size(); ++bN) {
 		if (bN != testbN && testbN > 0)
 			continue;
 		if (blocks[bN].isPark) {
-			std::cout << "bN is " << bN << std::endl;
+			//std::cout << "bN is " << bN << std::endl;
 			continue;
 		}
 		for (int cN = 0; cN < blocks[bN].blockContours.size(); ++cN) {
@@ -208,9 +218,13 @@ bool SateParcels::generateParcels(VBORenderManager& rendManager, std::vector<Blo
 
 				set_parcel_paras(final_parcel_size / (resize_factor * resize_factor));
 			}
-			std::cout << "---Processing block " << bN << std::endl;
+			//std::cout << "---Processing block " << bN << std::endl;
 			std::vector<Parcel> parcels;
 			subdivideBlockIntoParcels(blocks[bN], blocks[bN].blockContours[cN], parcels);
+			
+			////////////Liu added on 2019/07/22	
+			blocks[bN].parcels.clear();
+			////////////
 
 			blocks[bN].parcels.insert(blocks[bN].parcels.end(), parcels.begin(), parcels.end());
 

@@ -17,6 +17,7 @@ public:
 	ControlWidget* controlWidget;
 	GLWidget3D* glWidget;
 	UrbanGeometry* urbanGeometry;
+	//nrutil* nrutil;
 	int thresh;
 	int max_thresh;
 	cv::RNG rng;
@@ -29,6 +30,7 @@ public:
 	void setBlocksParameters();
 	std::vector<std::string> get_all_files_names_within_folder(std::string folder);
 	void testOneNN(int index);
+	void loadFiles(std::string path);
 
 protected:
 	void keyPressEvent(QKeyEvent* e);
@@ -88,6 +90,7 @@ public slots:
 	void onDemoLoadROI();
 	void onDemoLayout();
 
+
 	//
 	void onCallPython();
 	void onNNanalysis();
@@ -100,6 +103,12 @@ public slots:
 	void onTestSVF();
 	void onGenerateSVFImage();
 	void onGenerateHeightImage();
+				
+	//Liu added on 2019/07/07
+
+	void onOptimizeBuildingParameters();	
+	void in();
+
 };
 
 #endif // MAINWINDOW_H

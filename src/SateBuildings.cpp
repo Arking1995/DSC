@@ -30,6 +30,8 @@ bool SateBuildings::generateBuildings(VBORenderManager& rendManager, std::vector
 		result_blds = Util::getGeoInfo(G::getString("building_type_tif").toUtf8().data());
 	}
 
+	std::cout<<"get building type"<<std::endl;
+
 	int stories = 0;
 	int avg_height = 0;
 	int building_type = 1;
@@ -264,13 +266,15 @@ bool SateBuildings::generateBuildings(VBORenderManager& rendManager, std::vector
 				G::global()["parcel_setback_sides"] =  Util::genRand(1, 3);
 			}
 			if (!generateBuilding(rendManager, blocks[i], blocks[i].parcels[j], stories)) {
+				//Liu commented on 2019/07/20				
 				blocks[i].parcels[j].isPark = true;
 			}
 			/*if (j != 0)
 				blocks[i].parcels[j].isPark = true;*/
 		}
 		{
-			saveBldsImage(blocks[i], i);
+			//Liu commented on 2019/07/10
+			//saveBldsImage(blocks[i], i);
 		}
 	}
 
@@ -445,6 +449,8 @@ void SateBuildings::saveBldsImage(Block& block, int index){
 			points.push_back(cv::Point(x1, img.rows - y1));
 			//std::cout << "points ( " << x1 << ", " << y1 << ")"<< std::endl;
 		}
+		
+		//if (points.size()==0) {continue;}
 		cv::fillConvexPoly(img,               //Image to be drawn on
 			points,                 //C-Style array of points
 			cv::Scalar(255, 0, 0),  //Color , BGR form
@@ -489,25 +495,25 @@ std::vector<std::vector<int>> SateBuildings::get_height_info(QString height_tiff
 	poDataset_height = (GDALDataset *)GDALOpen(height_tiff.toUtf8().data(), GA_ReadOnly);
 	if (poDataset_height == NULL)
 	{
-		std::cout << " Null data" << std::endl;
+		std::cout << " Null data (sateBuildings::get_height_info)" << std::endl;
 	}
 	else{
 		// Getting Dataset Information
 		double        adfGeoTransform[6];
-		printf("Driver: %s/%s\n",
-			poDataset_height->GetDriver()->GetDescription(),
-			poDataset_height->GetDriver()->GetMetadataItem(GDAL_DMD_LONGNAME));
-		printf("Size is %dx%dx%d\n",
-			poDataset_height->GetRasterXSize(), poDataset_height->GetRasterYSize(),
-			poDataset_height->GetRasterCount());
+		//printf("Driver: %s/%s\n",
+		//	poDataset_height->GetDriver()->GetDescription(),
+		//	poDataset_height->GetDriver()->GetMetadataItem(GDAL_DMD_LONGNAME));
+		//printf("Size is %dx%dx%d\n",
+		//	poDataset_height->GetRasterXSize(), poDataset_height->GetRasterYSize(),
+		//	poDataset_height->GetRasterCount());
 		if (poDataset_height->GetProjectionRef() != NULL)
-			printf("Projection is `%s'\n", poDataset_height->GetProjectionRef());
+			//printf("Projection is `%s'\n", poDataset_height->GetProjectionRef());
 		if (poDataset_height->GetGeoTransform(adfGeoTransform) == CE_None)
 		{
-			printf("Origin = (%.6f,%.6f)\n",
-				adfGeoTransform[0], adfGeoTransform[3]);
-			printf("Pixel Size = (%.6f,%.6f)\n",
-				adfGeoTransform[1], adfGeoTransform[5]);
+			//printf("Origin = (%.6f,%.6f)\n",
+			//	adfGeoTransform[0], adfGeoTransform[3]);
+			//printf("Pixel Size = (%.6f,%.6f)\n",
+			//	adfGeoTransform[1], adfGeoTransform[5]);
 		}
 
 		//Fetching a Raster Band
@@ -521,18 +527,18 @@ std::vector<std::vector<int>> SateBuildings::get_height_info(QString height_tiff
 		adfMinMax[1] = poBand->GetMaximum(&bGotMax);
 		if (!(bGotMin && bGotMax))
 			GDALComputeRasterMinMax((GDALRasterBandH)poBand, TRUE, adfMinMax);
-		printf("Min=%.3fd, Max=%.3f\n", adfMinMax[0], adfMinMax[1]);
-		if (poBand->GetOverviewCount() > 0)
-			printf("Band has %d overviews.\n", poBand->GetOverviewCount());
-		if (poBand->GetColorTable() != NULL)
-			printf("Band has a color table with %d entries.\n",
-			poBand->GetColorTable()->GetColorEntryCount());
+		//printf("Min=%.3fd, Max=%.3f\n", adfMinMax[0], adfMinMax[1]);
+		if (poBand->GetOverviewCount() > 0){}
+			//printf("Band has %d overviews.\n", poBand->GetOverviewCount());
+		if (poBand->GetColorTable() != NULL){}
+			//printf("Band has a color table with %d entries.\n",
+			//poBand->GetColorTable()->GetColorEntryCount());
 		//Reading Raster Data
 		int nXSize = poBand->GetXSize();
 		int nYSize = poBand->GetYSize();
 		int *pafScanline = new int[nXSize*nYSize];
-		printf("Band nXSize is %d.\n", nXSize);
-		printf("Band nYSize is %d.\n", nYSize);
+		//printf("Band nXSize is %d.\n", nXSize);
+		//printf("Band nYSize is %d.\n", nYSize);
 		pafScanline = (int *)CPLMalloc(sizeof(int)*nXSize*nYSize);
 		poBand->RasterIO(GF_Read, 0, 0, nXSize, nYSize,
 			pafScanline, nXSize, nYSize, GDT_Int32,
@@ -548,6 +554,10 @@ std::vector<std::vector<int>> SateBuildings::get_height_info(QString height_tiff
 			tmp.clear();
 		}
 	}
+	
+	if(poDataset_height!=NULL){
+		GDALClose( (GDALDatasetH) poDataset_height );}
+
 	return height_info;
 }
 
@@ -558,25 +568,25 @@ std::vector<std::vector<int>> SateBuildings::get_blds_type_info(QString blds_typ
 	GDALAllRegister();
 	if (poDataset_population == NULL)
 	{
-		std::cout << " Null data" << std::endl;
+		std::cout << " Null data  (sateBuildings::get_blds_types_info)" << std::endl;
 	}
 	else{
 		// Getting Dataset Information
 		double        adfGeoTransform[6];
-		printf("Driver: %s/%s\n",
-			poDataset_population->GetDriver()->GetDescription(),
-			poDataset_population->GetDriver()->GetMetadataItem(GDAL_DMD_LONGNAME));
-		printf("Size is %dx%dx%d\n",
-			poDataset_population->GetRasterXSize(), poDataset_population->GetRasterYSize(),
-			poDataset_population->GetRasterCount());
+		//printf("Driver: %s/%s\n",
+		//	poDataset_population->GetDriver()->GetDescription(),
+		//	poDataset_population->GetDriver()->GetMetadataItem(GDAL_DMD_LONGNAME));
+		//printf("Size is %dx%dx%d\n",
+		//	poDataset_population->GetRasterXSize(), poDataset_population->GetRasterYSize(),
+		//	poDataset_population->GetRasterCount());
 		if (poDataset_population->GetProjectionRef() != NULL)
-			printf("Projection is `%s'\n", poDataset_population->GetProjectionRef());
+			//printf("Projection is `%s'\n", poDataset_population->GetProjectionRef());
 		if (poDataset_population->GetGeoTransform(adfGeoTransform) == CE_None)
 		{
-			printf("Origin = (%.6f,%.6f)\n",
-				adfGeoTransform[0], adfGeoTransform[3]);
-			printf("Pixel Size = (%.6f,%.6f)\n",
-				adfGeoTransform[1], adfGeoTransform[5]);
+			//printf("Origin = (%.6f,%.6f)\n",
+			//	adfGeoTransform[0], adfGeoTransform[3]);
+			//printf("Pixel Size = (%.6f,%.6f)\n",
+			//	adfGeoTransform[1], adfGeoTransform[5]);
 		}
 
 		//Fetching a Raster Band
@@ -586,16 +596,16 @@ std::vector<std::vector<int>> SateBuildings::get_blds_type_info(QString blds_typ
 		double          adfMinMax[2];
 		poBand = poDataset_population->GetRasterBand(1);
 		poBand->GetBlockSize(&nBlockXSize, &nBlockYSize);
-		printf("Block=%dx%d Type=%s, ColorInterp=%s\n",
-			nBlockXSize, nBlockYSize,
-			GDALGetDataTypeName(poBand->GetRasterDataType()),
-			GDALGetColorInterpretationName(
-			poBand->GetColorInterpretation()));
+		//printf("Block=%dx%d Type=%s, ColorInterp=%s\n",
+		//	nBlockXSize, nBlockYSize,
+		//	GDALGetDataTypeName(poBand->GetRasterDataType()),
+		//	GDALGetColorInterpretationName(
+		//	poBand->GetColorInterpretation()));
 		adfMinMax[0] = poBand->GetMinimum(&bGotMin);
 		adfMinMax[1] = poBand->GetMaximum(&bGotMax);
 		if (!(bGotMin && bGotMax))
 			GDALComputeRasterMinMax((GDALRasterBandH)poBand, TRUE, adfMinMax);
-		printf("Min=%.3fd, Max=%.3f\n", adfMinMax[0], adfMinMax[1]);
+		//printf("Min=%.3fd, Max=%.3f\n", adfMinMax[0], adfMinMax[1]);
 		if (poBand->GetOverviewCount() > 0)
 			printf("Band has %d overviews.\n", poBand->GetOverviewCount());
 		if (poBand->GetColorTable() != NULL)
@@ -605,8 +615,8 @@ std::vector<std::vector<int>> SateBuildings::get_blds_type_info(QString blds_typ
 		int nXSize = poBand->GetXSize();
 		int nYSize = poBand->GetYSize();
 		int *pafScanline = new int[nXSize*nYSize];
-		printf("Band nXSize is %d.\n", nXSize);
-		printf("Band nYSize is %d.\n", nYSize);
+		//printf("Band nXSize is %d.\n", nXSize);
+		//printf("Band nYSize is %d.\n", nYSize);
 		pafScanline = (int *)CPLMalloc(sizeof(int)*nXSize*nYSize);
 		poBand->RasterIO(GF_Read, 0, 0, nXSize, nYSize,
 			pafScanline, nXSize, nYSize, GDT_Int32,
@@ -622,5 +632,9 @@ std::vector<std::vector<int>> SateBuildings::get_blds_type_info(QString blds_typ
 			tmp.clear();
 		}
 	}
+
+	if(poDataset_population!=NULL){
+		GDALClose( (GDALDatasetH) poDataset_population );}
+
 	return blds_type_info;
 }

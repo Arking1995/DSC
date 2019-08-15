@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'MainWindow.ui'
 **
-** Created by: Qt User Interface Compiler version 5.8.0
+** Created by: Qt User Interface Compiler version 5.9.5
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
 ********************************************************************************/
@@ -86,6 +86,7 @@ public:
     QAction *actionTestSVF;
     QAction *actionTest_QPainter;
     QAction *actionGenerate_Height_Map;
+    QAction *actionOptimize_Building_Parameters;
     QWidget *centralWidget;
     QMenuBar *menuBar;
     QMenu *menuFile;
@@ -231,12 +232,14 @@ public:
         actionTest_QPainter->setObjectName(QStringLiteral("actionTest_QPainter"));
         actionGenerate_Height_Map = new QAction(MainWindow);
         actionGenerate_Height_Map->setObjectName(QStringLiteral("actionGenerate_Height_Map"));
+        actionOptimize_Building_Parameters = new QAction(MainWindow);
+        actionOptimize_Building_Parameters->setObjectName(QStringLiteral("actionOptimize_Building_Parameters"));
         centralWidget = new QWidget(MainWindow);
         centralWidget->setObjectName(QStringLiteral("centralWidget"));
         MainWindow->setCentralWidget(centralWidget);
         menuBar = new QMenuBar(MainWindow);
         menuBar->setObjectName(QStringLiteral("menuBar"));
-        menuBar->setGeometry(QRect(0, 0, 1006, 21));
+        menuBar->setGeometry(QRect(0, 0, 1006, 22));
         menuFile = new QMenu(menuBar);
         menuFile->setObjectName(QStringLiteral("menuFile"));
         menuWindow = new QMenu(menuBar);
@@ -330,6 +333,7 @@ public:
         menuSatelliate_Image->addAction(actionSateLayout);
         menuDemo->addAction(actionLoadROI);
         menuDemo->addAction(actionGenerate_ROI_Layout);
+        menuDemo->addAction(actionOptimize_Building_Parameters);
 
         retranslateUi(MainWindow);
 
@@ -340,26 +344,42 @@ public:
     {
         MainWindow->setWindowTitle(QApplication::translate("MainWindow", "Simple Cities", Q_NULLPTR));
         actionNewTerrain->setText(QApplication::translate("MainWindow", "New Terrain", Q_NULLPTR));
+#ifndef QT_NO_SHORTCUT
         actionNewTerrain->setShortcut(QString());
+#endif // QT_NO_SHORTCUT
         actionOpenTerrain->setText(QApplication::translate("MainWindow", "Open Terrain", Q_NULLPTR));
+#ifndef QT_NO_SHORTCUT
         actionOpenTerrain->setShortcut(QApplication::translate("MainWindow", "Ctrl+O", Q_NULLPTR));
+#endif // QT_NO_SHORTCUT
         actionExit->setText(QApplication::translate("MainWindow", "Exit", Q_NULLPTR));
         actionControlWidget->setText(QApplication::translate("MainWindow", "Control Widget", Q_NULLPTR));
         actionSaveTerrain->setText(QApplication::translate("MainWindow", "Save Terrain", Q_NULLPTR));
+#ifndef QT_NO_SHORTCUT
         actionSaveTerrain->setShortcut(QString());
+#endif // QT_NO_SHORTCUT
         actionSaveRoads->setText(QApplication::translate("MainWindow", "Save Roads", Q_NULLPTR));
         actionPropertyWidget->setText(QApplication::translate("MainWindow", "Property Widget", Q_NULLPTR));
         actionLoadRoads->setText(QApplication::translate("MainWindow", "Load Roads", Q_NULLPTR));
         actionClear->setText(QApplication::translate("MainWindow", "Clear", Q_NULLPTR));
+#ifndef QT_NO_SHORTCUT
         actionClear->setShortcut(QApplication::translate("MainWindow", "Ctrl+N", Q_NULLPTR));
+#endif // QT_NO_SHORTCUT
         actionSaveImage->setText(QApplication::translate("MainWindow", "Save Image", Q_NULLPTR));
+#ifndef QT_NO_SHORTCUT
         actionSaveImage->setShortcut(QApplication::translate("MainWindow", "Ctrl+L", Q_NULLPTR));
+#endif // QT_NO_SHORTCUT
         actionLoadCamera->setText(QApplication::translate("MainWindow", "Load Camera", Q_NULLPTR));
+#ifndef QT_NO_SHORTCUT
         actionLoadCamera->setShortcut(QApplication::translate("MainWindow", "Ctrl+1", Q_NULLPTR));
+#endif // QT_NO_SHORTCUT
         actionSaveCamera->setText(QApplication::translate("MainWindow", "Save Camera", Q_NULLPTR));
+#ifndef QT_NO_SHORTCUT
         actionSaveCamera->setShortcut(QApplication::translate("MainWindow", "Ctrl+2", Q_NULLPTR));
+#endif // QT_NO_SHORTCUT
         actionSaveImageHD->setText(QApplication::translate("MainWindow", "Save Image HD", Q_NULLPTR));
+#ifndef QT_NO_SHORTCUT
         actionSaveImageHD->setShortcut(QApplication::translate("MainWindow", "Ctrl+S", Q_NULLPTR));
+#endif // QT_NO_SHORTCUT
         actionResetCamera->setText(QApplication::translate("MainWindow", "Reset Camera", Q_NULLPTR));
         actionGenerateBlocks->setText(QApplication::translate("MainWindow", "Generate Blocks", Q_NULLPTR));
         actionGenerateParcels->setText(QApplication::translate("MainWindow", "Generate Parcels", Q_NULLPTR));
@@ -369,7 +389,9 @@ public:
         actionLoadParcels->setText(QApplication::translate("MainWindow", "Load Parcels", Q_NULLPTR));
         actionLoadBuildings->setText(QApplication::translate("MainWindow", "Load Buildings", Q_NULLPTR));
         actionGenerateRoads->setText(QApplication::translate("MainWindow", "Generate Roads", Q_NULLPTR));
+#ifndef QT_NO_SHORTCUT
         actionGenerateRoads->setShortcut(QApplication::translate("MainWindow", "Ctrl+R", Q_NULLPTR));
+#endif // QT_NO_SHORTCUT
         actionLoadZone->setText(QApplication::translate("MainWindow", "Load Zone", Q_NULLPTR));
         actionSaveParcels->setText(QApplication::translate("MainWindow", "Save Parcels", Q_NULLPTR));
         actionSaveBuildings->setText(QApplication::translate("MainWindow", "Save Buildings", Q_NULLPTR));
@@ -408,6 +430,7 @@ public:
         actionTestSVF->setText(QApplication::translate("MainWindow", "Test SVF", Q_NULLPTR));
         actionTest_QPainter->setText(QApplication::translate("MainWindow", "Generate SVF Map", Q_NULLPTR));
         actionGenerate_Height_Map->setText(QApplication::translate("MainWindow", "Generate Height Map", Q_NULLPTR));
+        actionOptimize_Building_Parameters->setText(QApplication::translate("MainWindow", "Optimize Building Parameters", Q_NULLPTR));
         menuFile->setTitle(QApplication::translate("MainWindow", "File", Q_NULLPTR));
         menuWindow->setTitle(QApplication::translate("MainWindow", "Window", Q_NULLPTR));
         menuPM->setTitle(QApplication::translate("MainWindow", "PM", Q_NULLPTR));

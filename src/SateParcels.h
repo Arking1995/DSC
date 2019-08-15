@@ -18,4 +18,9 @@ private:
 	static void subdivideBlockIntoParcels(const Block & block, const Polygon3D& contour, std::vector<Parcel>& parcels);
 	static bool subdivideParcel(const Block & block, Parcel& parcel, float areaMean, float areaVar, float splitIrregularity, std::vector<Parcel>& outParcels);
 	static void  saveParcelImage(const Polygon3D& contour, const std::vector<Parcel> parcels, int index);
+
+	static CaffeWrapper* caffe_parcel_type;
+	static Regression* parcel_small;
+	static Regression* parcel_median;
+	static Regression* parcel_big;
 };

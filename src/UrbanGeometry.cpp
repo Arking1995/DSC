@@ -26,6 +26,8 @@
 #include <QTest>
 #include "OSMRoadsParser.h"
 
+#include "ogrsf_frmts.h"
+
 int UrbanGeometry::width;
 int UrbanGeometry::depth;
 MainWindow* UrbanGeometry::mainWin;
@@ -37,7 +39,18 @@ Polygon2D UrbanGeometry::zone;
 std::vector<Block> UrbanGeometry::myBlocks;
 VBORenderManager UrbanGeometry::myRenderManager;
 
+//Liu added on 2019/07/07
+float UrbanGeometry::minParcelError = 10.0;
+float UrbanGeometry::minBuildingError = 10.0;
+float UrbanGeometry::optimalParcelBoundarySmallMid = 1.0;
+float UrbanGeometry::optimalParcelBoundaryMidLarge = 1.0;
+float UrbanGeometry::optimalCorrectionFactor = 1.0;
+
+
 ShapefileStats UrbanGeometry::truthStats;
+
+
+
 
 UrbanGeometry::UrbanGeometry(MainWindow* mainWin) {
 	this->mainWin = mainWin;
@@ -696,7 +709,10 @@ float UrbanGeometry::getBuildingTotalArea(){
 	}
 	std::cout << "building number is " << number_buildings << std::endl;
 	std::cout << "building avg area is " << shape.getTotalArea() / number_buildings << std::endl;
-	return 	shape.getTotalArea() / number_buildings;
+	return 	shape.getTotalArea(); 
+
+	/////////////////////////////////////////////////	
+	//savebuildings() holds different results towards gettotalarea()??
 }
 
 void UrbanGeometry::generateToolImageOBB(const float parcel_area, const float image_width, const float image_height, const QString& des_dir){
@@ -1252,6 +1268,7 @@ void UrbanGeometry::loadBuildings(const std::string& filename) {
 
 void UrbanGeometry::saveBuildings(const std::string& filename) {
 	glm::vec2 offset;
+	int numofbuilding = 0;
 	if (G::getDouble("center_long") != 0 && G::getDouble("center_lat") != 0){
 		QVector2D result = Util::projLatLonToMeter(G::getDouble("center_long"), G::getDouble("center_lat"));
 		offset = glm::vec2(result.x(), result.y());
@@ -1259,6 +1276,7 @@ void UrbanGeometry::saveBuildings(const std::string& filename) {
 	else{
 		offset = (maxBound + minBound) * 0.5f;
 	}
+
 	gs::Shape shape(wkbPolygon);
 	for (int i = 0; i < blocks.blocks.size(); ++i) {
 		if (blocks[i].isPark) continue;
@@ -1295,9 +1313,10 @@ void UrbanGeometry::saveBuildings(const std::string& filename) {
 			}
 
 			shape.shapeObjects.push_back(shapeObject);
+			numofbuilding++;
 		}
 	}
-
+	std::cout<<"Num bu:  "<<numofbuilding<<std::endl;
 	shape.save(filename);
 }
 
@@ -1335,6 +1354,202 @@ void UrbanGeometry::clear() {
 	roads.clear();
 	blocks.clear();
 	update(mainWin->glWidget->vboRenderManager);
+}
+
+
+//Liu added on 2019/07/07
+float UrbanGeometry::parcelErrorFunc(float* params){
+	float parcelBoundarySmallMid = params[1];
+	float parcelBoundaryMidLarge = params[2];
+	float bldgCorrectionFactor = params[3];
+
+	if (parcelBoundarySmallMid < 0.1 || parcelBoundarySmallMid > 1.5 || parcelBoundaryMidLarge < 0.1 || parcelBoundaryMidLarge > 1.5 || bldgCorrectionFactor < 0.2 || bldgCorrectionFactor > 3){
+		float avgError = FLT_MAX;
+		return avgError; // Probably run out of range at this stage.
+	}
+
+	parcelBoundarySmallMid = parcelBoundarySmallMid * 200 + 200;
+	parcelBoundaryMidLarge = parcelBoundaryMidLarge * 600 + 400;
+
+	std::cout << std::endl<<"Running Parcel Iteration w/ Params - " << parcelBoundarySmallMid << ", " << parcelBoundaryMidLarge << ", " << bldgCorrectionFactor << std::endl;
+
+	SateParcels::generateParcels(myRenderManager, blocks.blocks, parcelBoundarySmallMid, parcelBoundaryMidLarge, -1, false);
+	SateBuildings::generateBuildings(myRenderManager, blocks.blocks, bldgCorrectionFactor);
+	
+	//sateGetParcels(parcelBoundarySmallMid, parcelBoundaryMidLarge, -1, false);
+	//sateGetBuildings(bldgCorrectionFactor);
+	
+
+
+
+	int numBuildings = 0;
+	for (int i = 0; i < blocks.blocks.size(); ++i) {
+		if (blocks[i].isPark) continue;
+
+		for (int j = 0; j < blocks[i].parcels.size(); ++j) {
+			if (blocks[i].parcels[j].isPark) continue;
+			if (blocks[i].parcels[j].building.buildingFootprint.size() < 3) continue;
+			numBuildings++;
+		}
+	}
+	ShapefileStats generatedStats;
+	generatedStats.numBuildings = numBuildings;
+	float totalArea = getBuildingTotalArea();
+	generatedStats.avgArea = totalArea / numBuildings;
+	
+
+	float areaError = fabs((generatedStats.avgArea - truthStats.avgArea) / (float)truthStats.avgArea);
+	float numError = fabs((generatedStats.numBuildings - truthStats.numBuildings) / (float)truthStats.numBuildings);
+
+	float avgError = (areaError + numError) / 2.0;
+	if (avgError < minParcelError){
+		minParcelError = avgError;
+		optimalParcelBoundarySmallMid = parcelBoundarySmallMid;
+		optimalParcelBoundaryMidLarge = parcelBoundaryMidLarge;
+		optimalCorrectionFactor = bldgCorrectionFactor;
+	}
+	
+	std::cout<< "Current Avg area:"<<generatedStats.avgArea <<",  Truth Avg area:"<<truthStats.avgArea<<std::endl;
+	std::cout<< "Current Building num:"<<generatedStats.numBuildings <<",  Truth Building num :"<<truthStats.numBuildings<<std::endl;
+
+	std::cout << "Area Error: " << areaError << ", Building Num Error: " << numError << ", Avg Error: " << avgError << std::endl;
+	std::cout << "So far - Best Parameters: " << optimalParcelBoundarySmallMid << ", " << optimalParcelBoundaryMidLarge << ", Correction Factor : " << optimalCorrectionFactor << std::endl;
+	std::cout << "So far - Best Error: " << minParcelError << std::endl;
+
+
+	std::ofstream outfile;
+
+	outfile.open("cities/Jacksonville_Tiles/Optimization_logout.txt", std::ios_base::app);
+
+	outfile << "Running Parcel Iteration w/ Params - " << parcelBoundarySmallMid << ", " << parcelBoundaryMidLarge << ", " << bldgCorrectionFactor << std::endl;
+	outfile << "Area Error: " << areaError << ", Building Num Error: " << numError << ", Avg Error: " << avgError << std::endl;
+	outfile << "So far - Best Parameters: " << optimalParcelBoundarySmallMid << ", " << optimalParcelBoundaryMidLarge << ", Correction Factor : " << optimalCorrectionFactor << std::endl;
+	outfile << "So far - Best Error: " << minParcelError << std::endl;
+	outfile << std::endl;
+
+	return avgError;
+}
+
+float UrbanGeometry::computeOptimalParcelParams(std::string truthShapefilePath){
+	float initParcelBoundarySmallMid = 0.5;
+	float initParcelBoundaryMidHigh = 0.9;
+	float initCorrectionFactor = 1.8;
+	/*Setup Optimization*/
+	int it = 0;
+	float ret;
+	int numVariables = 3;
+	float *p;
+	p = vector(1, numVariables);
+	p[0] = 0;
+	p[1] = initParcelBoundarySmallMid;
+	p[2] = initParcelBoundaryMidHigh;
+	p[3] = initCorrectionFactor;
+
+	int i, j;
+	float **drctns;
+	drctns = matrix(1, numVariables, 1, numVariables);
+	for (i = 1; i <= numVariables; i++){
+		for (j = 1; j <= numVariables; j++){
+			drctns[i][j] = 0.0;
+			if (i == j) drctns[i][j] = 1.0;
+		}
+	}
+
+	if (truthStats.numBuildings == 0){
+		std::cout << "Reading Truth" << std::endl;
+		truthStats = Util::readShapeFile(truthShapefilePath);
+		std::cout << "Truth Path: "<<truthShapefilePath<<std::endl;
+		std::cout << "BUilding number "<<truthStats.numBuildings<<std::endl;
+		std::cout << "avg area: "<<truthStats.avgArea<<std::endl;
+	}
+	bool converged = powell(p, drctns, numVariables, 0.005, 0.0001, &it, &ret, UrbanGeometry::parcelErrorFunc);
+	std::cout << converged << std::endl;
+
+	std::cout << "Optimized Parcel Setback Factor : ";
+	std::cout << "OPT Parcel " << optimalParcelBoundarySmallMid << ", " << optimalParcelBoundaryMidLarge << ", OPT Correction Factor " << optimalCorrectionFactor << " Min Error : " << minParcelError << std::endl;
+
+	return 0.0;
+}
+
+
+
+float UrbanGeometry::buildingErrorFunc(float* params){
+	if (params[1] < 0.1 || params[1] > 1.2){
+		float avgError = FLT_MAX;
+		return avgError;
+	}
+
+	std::cout << "Running Iteration w/ Correction Factor: " << params[1] << std::endl;
+	SateBuildings::generateBuildings(myRenderManager, blocks.blocks, params[1]);
+
+	float totalArea = 0;
+	int totalBldgs = 0;
+	for (int i = 0; i < blocks.blocks.size(); ++i) {
+		if (blocks[i].isPark) continue;
+
+		for (int j = 0; j < blocks[i].parcels.size(); ++j) {
+			if (blocks[i].parcels[j].isPark) continue;
+			if (blocks[i].parcels[j].building.buildingFootprint.size() < 3) continue;
+			totalArea += blocks[i].parcels[j].building.buildingFootprint.area();
+			totalBldgs += 1;
+		}
+	}
+
+	ShapefileStats generatedStats;
+	generatedStats.avgArea = totalArea / (float)totalBldgs;
+	generatedStats.numBuildings = totalBldgs;
+
+		
+	float areaError = fabs((generatedStats.avgArea - truthStats.avgArea) / (float)truthStats.avgArea);
+	float numError = fabs((generatedStats.numBuildings - truthStats.numBuildings) / (float)truthStats.numBuildings);
+
+	float avgError = (areaError + 4 * numError) / 5.0;
+	if (avgError < minBuildingError){
+		minBuildingError = avgError;
+		optimalCorrectionFactor = params[1];
+	}
+	std::cout << "Avg Error: " << avgError <<std::endl;
+
+	return avgError; 
+}
+
+float UrbanGeometry::computeOptimalBuildingParams(){
+	std::cout << "Computing Optimal Building Parameters";
+	float initCorrectionFactor = 0.876362;
+	/*Setup Optimization*/
+
+	int it = 0;
+	float ret;
+	int numVariables = 1;
+	float *p;
+	p = vector(1, numVariables);
+	p[0] = 0;
+	p[1] = initCorrectionFactor;
+
+	int i, j;
+	float **drctns;
+	drctns = matrix(1, numVariables, 1, numVariables);
+	for (i = 1; i <= numVariables; i++){
+		for (j = 1; j <= numVariables; j++){
+			drctns[i][j] = 0.0;
+			if (i == j) drctns[i][j] = 1.0;
+		}
+	}
+
+	if (truthStats.numBuildings == 0){
+		std::cout << "Reading Truth" << std::endl;
+		std::string truthDir = "D:/QtUrbanCNN_NewNetworkOBB/QtUrbanCNN/source/truth/";
+		std::string buildingShapefileTruth = truthDir + "Buildings.shp";
+		truthStats = Util::readShapeFile(buildingShapefileTruth);
+	}
+
+	bool converged = powell(p, drctns, numVariables, 0.05, 0.005, &it, &ret, UrbanGeometry::buildingErrorFunc);
+	std::cout << converged << std::endl;
+
+	std::cout << "Optimized Building Variables: ";
+	std::cout << " " << optimalCorrectionFactor << " Min Error:" << minBuildingError << std::endl;
+
+	return 0.0;
 }
 
 
